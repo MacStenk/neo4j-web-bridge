@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neo4j Web Bridge - Access Your Database Anywhere</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 800px;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .status {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 15px 20px;
+            background: #f7fafc;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #e53e3e;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.connected {
+            background: #48bb78;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2d3748;
+            font-size: 14px;
+        }
+
+        input, textarea, select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        textarea {
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #e2e8f0;
+            color: #2d3748;
+        }
+
+        .btn-danger {
+            background: #e53e3e;
+            color: white;
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .results {
+            margin-top: 30px;
+            display: none;
+        }
+
+        .results.show {
+            display: block;
+        }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .results-header h3 {
+            color: #2d3748;
+        }
+
+        .results-meta {
+            font-size: 12px;
+            color: #718096;
+        }
+
+        .results-table {
+            background: #f7fafc;
+            border-radius: 8px;
+            padding: 20px;
+            overflow-x: auto;
+        }
+
+        pre {
+            background: #1a202c;
+            color: #48bb78;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .error {
+            background: #fff5f5;
+            border: 2px solid #fc8181;
+            color: #c53030;
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-top: 15px;
+            display: none;
+        }
+
+        .error.show {
+            display: block;
+        }
+
+        .success {
+            background: #f0fff4;
+            border: 2px solid #9ae6b4;
+            color: #22543d;
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-top: 15px;
+            display: none;
+        }
+
+        .success.show {
+            display: block;
+        }
+
+        .tab-container {
+            display: none;
+        }
+
+        .tab-container.active {
+            display: block;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .tab {
+            padding: 12px 24px;
+            background: none;
+            border: none;
+            border-bottom: 3px solid transparent;
+            cursor: pointer;
+            font-weight: 600;
+            color: #718096;
+            transition: all 0.2s;
+        }
+
+        .tab:hover {
+            color: #667eea;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .quick-queries {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .quick-query-btn {
+            padding: 10px;
+            background: #edf2f7;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 13px;
+            text-align: left;
+        }
+
+        .quick-query-btn:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        @media (max-width: 600px) {
+            .header h1 {
+                font-size: 22px;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+
+            button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Neo4j Web Bridge</h1>
+            <p>Access your self-hosted Neo4j from anywhere, without TLS hassles</p>
+        </div>
+
+        <div class="content">
+            <div class="status">
+                <div class="status-indicator">
+                    <div class="status-dot" id="statusDot"></div>
+                    <span id="statusText">Not Connected</span>
+                </div>
+                <button class="btn-danger" id="disconnectBtn" style="display: none;" onclick="disconnect()">
+                    Disconnect
+                </button>
+            </div>
+
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab('connect')">Connect</button>
+                <button class="tab" onclick="switchTab('query')">Query</button>
+            </div>
+
+            <!-- Connect Tab -->
+            <div id="connectTab" class="tab-container active">
+                <div class="form-group">
+                    <label for="uri">Database URL</label>
+                    <input type="text" id="uri" placeholder="bolt://your-neo4j-host:7687" value="bolt://yamanote.proxy.rlwy.net:36570">
+                </div>
+
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" placeholder="neo4j" value="neo4j">
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" placeholder="Enter password" value="">
+                </div>
+
+                <div class="form-group">
+                    <label for="database">Database</label>
+                    <input type="text" id="database" placeholder="neo4j" value="neo4j">
+                </div>
+
+                <div class="button-group">
+                    <button class="btn-primary" onclick="connect()">Connect</button>
+                </div>
+
+                <div class="error" id="connectError"></div>
+                <div class="success" id="connectSuccess"></div>
+            </div>
+
+            <!-- Query Tab -->
+            <div id="queryTab" class="tab-container">
+                <div class="quick-queries">
+                    <button class="quick-query-btn" onclick="setQuery('MATCH (n) RETURN n LIMIT 25')">
+                        Show Nodes
+                    </button>
+                    <button class="quick-query-btn" onclick="setQuery('MATCH (n)-[r]->(m) RETURN n, r, m LIMIT 25')">
+                        Show Graph
+                    </button>
+                    <button class="quick-query-btn" onclick="setQuery('CALL db.labels()')">
+                        List Labels
+                    </button>
+                    <button class="quick-query-btn" onclick="setQuery('CALL db.relationshipTypes()')">
+                        Relationship Types
+                    </button>
+                </div>
+
+                <div class="form-group">
+                    <label for="cypher">Cypher Query</label>
+                    <textarea id="cypher" placeholder="MATCH (n) RETURN n LIMIT 25"></textarea>
+                </div>
+
+                <div class="button-group">
+                    <button class="btn-primary" onclick="executeQuery()">Execute</button>
+                    <button class="btn-secondary" onclick="clearQuery()">Clear</button>
+                </div>
+
+                <div class="error" id="queryError"></div>
+
+                <div class="results" id="results">
+                    <div class="results-header">
+                        <h3>Results</h3>
+                        <div class="results-meta" id="resultsMeta"></div>
+                    </div>
+                    <div class="results-table">
+                        <pre id="resultsContent"></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let isConnected = false;
+
+        function switchTab(tab) {
+            // Update tabs
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-container').forEach(c => c.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(tab + 'Tab').classList.add('active');
+        }
+
+        async function connect() {
+            const uri = document.getElementById('uri').value;
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const database = document.getElementById('database').value;
+
+            const errorEl = document.getElementById('connectError');
+            const successEl = document.getElementById('connectSuccess');
+            
+            errorEl.classList.remove('show');
+            successEl.classList.remove('show');
+
+            if (!uri || !username || !password) {
+                errorEl.textContent = 'Please fill in all required fields';
+                errorEl.classList.add('show');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/connect', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ uri, username, password, database })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    isConnected = true;
+                    document.getElementById('statusDot').classList.add('connected');
+                    document.getElementById('statusText').textContent = `Connected to ${data.uri}`;
+                    document.getElementById('disconnectBtn').style.display = 'block';
+                    
+                    successEl.textContent = '✅ Connected successfully!';
+                    successEl.classList.add('show');
+
+                    // Switch to query tab
+                    setTimeout(() => switchTab('query'), 1000);
+                } else {
+                    throw new Error(data.error);
+                }
+            } catch (error) {
+                errorEl.textContent = '❌ ' + error.message;
+                errorEl.classList.add('show');
+            }
+        }
+
+        async function disconnect() {
+            try {
+                await fetch('/api/disconnect', { method: 'POST' });
+                
+                isConnected = false;
+                document.getElementById('statusDot').classList.remove('connected');
+                document.getElementById('statusText').textContent = 'Not Connected';
+                document.getElementById('disconnectBtn').style.display = 'none';
+                
+                switchTab('connect');
+            } catch (error) {
+                alert('Failed to disconnect: ' + error.message);
+            }
+        }
+
+        async function executeQuery() {
+            if (!isConnected) {
+                alert('Please connect to Neo4j first');
+                return;
+            }
+
+            const cypher = document.getElementById('cypher').value;
+            const database = document.getElementById('database').value;
+            const errorEl = document.getElementById('queryError');
+            const resultsEl = document.getElementById('results');
+            
+            errorEl.classList.remove('show');
+            resultsEl.classList.remove('show');
+
+            if (!cypher) {
+                errorEl.textContent = 'Please enter a Cypher query';
+                errorEl.classList.add('show');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/query', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ cypher, database })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    document.getElementById('resultsContent').textContent = 
+                        JSON.stringify(data.records, null, 2);
+                    
+                    document.getElementById('resultsMeta').textContent = 
+                        `${data.records.length} records • ${data.summary.resultConsumedAfter}ms`;
+                    
+                    resultsEl.classList.add('show');
+                } else {
+                    throw new Error(data.error);
+                }
+            } catch (error) {
+                errorEl.textContent = '❌ ' + error.message;
+                errorEl.classList.add('show');
+            }
+        }
+
+        function setQuery(query) {
+            document.getElementById('cypher').value = query;
+        }
+
+        function clearQuery() {
+            document.getElementById('cypher').value = '';
+            document.getElementById('results').classList.remove('show');
+            document.getElementById('queryError').classList.remove('show');
+        }
+
+        // Enter key to connect
+        document.getElementById('password').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') connect();
+        });
+
+        // Ctrl/Cmd + Enter to execute query
+        document.getElementById('cypher').addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') executeQuery();
+        });
+    </script>
+</body>
+</html>

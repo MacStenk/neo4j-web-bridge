@@ -1,0 +1,23 @@
+{
+  "name": "neo4j-web-bridge",
+  "version": "1.0.0",
+  "description": "Universal web interface for self-hosted Neo4j - Access your database from anywhere without TLS hassles",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "keywords": ["neo4j", "database", "web", "bridge", "tls", "bolt", "railway", "docker"],
+  "author": "Steven Noack",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "neo4j-driver": "^5.15.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
