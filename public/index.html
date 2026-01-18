@@ -3,7 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Neo4j Web Bridge - Access Your Database Anywhere</title>
+    <title>Neo4j Web Bridge - Access Your Database From Anywhere</title>
+    <meta name="description" content="Connect to your self-hosted Neo4j database from anywhere, without TLS configuration. Works with Railway, Render, Docker, and more.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -11,411 +15,946 @@
             box-sizing: border-box;
         }
 
+        :root {
+            --bg-primary: #0f1419;
+            --bg-secondary: #1a2028;
+            --bg-card: #1e252e;
+            --border-color: #2d3640;
+            --text-primary: #ffffff;
+            --text-secondary: #8b949e;
+            --text-muted: #6e7681;
+            --accent: #58a6ff;
+            --accent-hover: #79b8ff;
+            --success: #3fb950;
+            --error: #f85149;
+        }
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Navigation */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+            background: rgba(15, 20, 25, 0.9);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .logo {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-primary);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            background: var(--accent);
+            border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 20px;
-        }
-
-        .container {
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            max-width: 800px;
-            width: 100%;
-            overflow: hidden;
-        }
-
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 30px;
-            text-align: center;
-        }
-
-        .header h1 {
-            font-size: 28px;
-            margin-bottom: 10px;
-        }
-
-        .header p {
-            opacity: 0.9;
+            font-weight: 700;
             font-size: 14px;
         }
 
-        .content {
-            padding: 30px;
+        .nav-links {
+            display: flex;
+            gap: 32px;
+            align-items: center;
         }
 
-        .status {
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover {
+            color: var(--text-primary);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: var(--bg-primary);
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-hover);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-secondary);
+            border-color: var(--text-muted);
+        }
+
+        /* Hero Section */
+        .hero {
+            padding: 160px 40px 80px;
+            text-align: center;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .hero h1 {
+            font-size: 56px;
+            font-weight: 700;
+            line-height: 1.1;
+            margin-bottom: 24px;
+            letter-spacing: -0.02em;
+        }
+
+        .hero h1 span {
+            color: var(--accent);
+        }
+
+        .hero p {
+            font-size: 18px;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto 40px;
+        }
+
+        .hero-cta {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            margin-bottom: 16px;
+        }
+
+        .hero-note {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        /* Demo Section */
+        .demo-section {
+            padding: 40px;
+            display: flex;
+            gap: 40px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .demo-visual {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .connection-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .connection-card .card-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .connection-card .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .dot-red { background: #f85149; }
+        .dot-yellow { background: #d29922; }
+        .dot-green { background: #3fb950; }
+        .dot-blue { background: #58a6ff; }
+
+        .connection-line {
+            height: 8px;
+            background: var(--bg-secondary);
+            border-radius: 4px;
+            margin-bottom: 8px;
+        }
+
+        .connection-line.short { width: 60%; }
+        .connection-line.medium { width: 80%; }
+        .connection-line.long { width: 100%; }
+        .connection-line.highlight { background: var(--accent); width: 70%; }
+
+        .arrow-connector {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px;
+            color: var(--text-muted);
+        }
+
+        .arrow-connector svg {
+            width: 24px;
+            height: 24px;
+        }
+
+        .code-preview {
+            flex: 1;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .code-header {
+            display: flex;
+            gap: 8px;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-color);
+            background: var(--bg-secondary);
+        }
+
+        .code-tab {
+            padding: 6px 12px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        .code-tab.active {
+            background: var(--accent);
+            color: var(--bg-primary);
+        }
+
+        .code-content {
+            padding: 20px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            overflow-x: auto;
+        }
+
+        .code-content .key { color: #79c0ff; }
+        .code-content .string { color: #a5d6ff; }
+        .code-content .comment { color: var(--text-muted); }
+
+        /* Trust Section */
+        .trust-section {
+            padding: 60px 40px;
+            text-align: center;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .trust-section p {
+            color: var(--text-muted);
+            font-size: 14px;
+            margin-bottom: 32px;
+        }
+
+        .trust-section strong {
+            color: var(--text-primary);
+        }
+
+        .trust-logos {
+            display: flex;
+            justify-content: center;
+            gap: 48px;
+            flex-wrap: wrap;
+            opacity: 0.7;
+        }
+
+        .trust-logo {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        /* Features Section */
+        .features-section {
+            padding: 80px 40px;
+            background: var(--bg-secondary);
+        }
+
+        .features-section h2 {
+            text-align: center;
+            font-size: 36px;
+            margin-bottom: 16px;
+        }
+
+        .features-section > p {
+            text-align: center;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto 60px;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .feature-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 28px;
+        }
+
+        .feature-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 16px;
+            color: var(--accent);
+        }
+
+        .feature-card h3 {
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+
+        .feature-card p {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        /* How It Works */
+        .how-section {
+            padding: 80px 40px;
+        }
+
+        .how-section h2 {
+            text-align: center;
+            font-size: 36px;
+            margin-bottom: 60px;
+        }
+
+        .how-diagram {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 32px;
+            max-width: 900px;
+            margin: 0 auto;
+            flex-wrap: wrap;
+        }
+
+        .how-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px 32px;
+            text-align: center;
+            min-width: 180px;
+        }
+
+        .how-box .icon {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+
+        .how-box h4 {
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+
+        .how-box p {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .how-arrow {
+            color: var(--text-muted);
+            font-size: 20px;
+        }
+
+        /* App Section */
+        .app-section {
+            padding: 80px 40px;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .app-container {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        .app-header {
+            background: var(--bg-secondary);
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--border-color);
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 15px 20px;
-            background: #f7fafc;
-            border-radius: 8px;
-            margin-bottom: 20px;
         }
 
-        .status-indicator {
+        .app-title {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .app-status {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
+            font-size: 13px;
+            color: var(--text-secondary);
         }
 
         .status-dot {
-            width: 12px;
-            height: 12px;
+            width: 8px;
+            height: 8px;
             border-radius: 50%;
-            background: #e53e3e;
-            animation: pulse 2s infinite;
+            background: var(--error);
         }
 
         .status-dot.connected {
-            background: #48bb78;
+            background: var(--success);
         }
 
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
+        .app-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            min-height: 400px;
+        }
+
+        .app-form {
+            padding: 24px;
+            border-right: 1px solid var(--border-color);
+        }
+
+        .app-results {
+            padding: 24px;
+            background: var(--bg-primary);
         }
 
         .form-group {
             margin-bottom: 20px;
         }
 
-        label {
+        .form-group label {
             display: block;
+            font-size: 13px;
+            color: var(--text-secondary);
             margin-bottom: 8px;
-            font-weight: 600;
-            color: #2d3748;
-            font-size: 14px;
         }
 
-        input, textarea, select {
+        .form-group input,
+        .form-group textarea {
             width: 100%;
-            padding: 12px 16px;
-            border: 2px solid #e2e8f0;
-            border-radius: 8px;
+            padding: 10px 14px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-primary);
             font-size: 14px;
-            transition: all 0.2s;
+            font-family: inherit;
         }
 
-        input:focus, textarea:focus, select:focus {
+        .form-group input:focus,
+        .form-group textarea:focus {
             outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            border-color: var(--accent);
         }
 
-        textarea {
-            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-            min-height: 120px;
+        .form-group textarea {
+            min-height: 100px;
+            font-family: 'Monaco', monospace;
             resize: vertical;
         }
 
-        .button-group {
-            display: flex;
-            gap: 10px;
-            margin-top: 20px;
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
         }
 
-        button {
-            flex: 1;
-            padding: 12px 24px;
-            border: none;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 14px;
+        .quick-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+        }
+
+        .quick-btn {
+            padding: 6px 12px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            color: var(--text-secondary);
+            font-size: 12px;
             cursor: pointer;
             transition: all 0.2s;
         }
 
-        button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        .quick-btn:hover {
+            background: var(--accent);
+            color: var(--bg-primary);
+            border-color: var(--accent);
         }
 
-        button:active {
-            transform: translateY(0);
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-
-        .btn-secondary {
-            background: #e2e8f0;
-            color: #2d3748;
-        }
-
-        .btn-danger {
-            background: #e53e3e;
-            color: white;
-        }
-
-        button:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none !important;
-        }
-
-        .results {
-            margin-top: 30px;
-            display: none;
-        }
-
-        .results.show {
-            display: block;
-        }
-
-        .results-header {
+        .results-placeholder {
+            height: 100%;
             display: flex;
-            justify-content: space-between;
+            flex-direction: column;
             align-items: center;
-            margin-bottom: 15px;
+            justify-content: center;
+            color: var(--text-muted);
+            font-size: 14px;
         }
 
-        .results-header h3 {
-            color: #2d3748;
+        .results-content {
+            font-family: 'Monaco', monospace;
+            font-size: 12px;
+            line-height: 1.6;
+            color: var(--success);
+            white-space: pre-wrap;
+            word-break: break-all;
         }
 
         .results-meta {
             font-size: 12px;
-            color: #718096;
+            color: var(--text-muted);
+            margin-bottom: 12px;
         }
 
-        .results-table {
-            background: #f7fafc;
-            border-radius: 8px;
-            padding: 20px;
-            overflow-x: auto;
-        }
-
-        pre {
-            background: #1a202c;
-            color: #48bb78;
-            padding: 20px;
-            border-radius: 8px;
-            overflow-x: auto;
+        .message {
+            padding: 12px 16px;
+            border-radius: 6px;
+            margin-bottom: 16px;
             font-size: 13px;
-            line-height: 1.5;
-        }
-
-        .error {
-            background: #fff5f5;
-            border: 2px solid #fc8181;
-            color: #c53030;
-            padding: 15px 20px;
-            border-radius: 8px;
-            margin-top: 15px;
             display: none;
         }
 
-        .error.show {
+        .message.error {
+            background: rgba(248, 81, 73, 0.1);
+            border: 1px solid rgba(248, 81, 73, 0.3);
+            color: var(--error);
+        }
+
+        .message.success {
+            background: rgba(63, 185, 80, 0.1);
+            border: 1px solid rgba(63, 185, 80, 0.3);
+            color: var(--success);
+        }
+
+        .message.show {
             display: block;
         }
 
-        .success {
-            background: #f0fff4;
-            border: 2px solid #9ae6b4;
-            color: #22543d;
-            padding: 15px 20px;
-            border-radius: 8px;
-            margin-top: 15px;
-            display: none;
+        /* Footer */
+        footer {
+            padding: 60px 40px;
+            border-top: 1px solid var(--border-color);
         }
 
-        .success.show {
-            display: block;
-        }
-
-        .tab-container {
-            display: none;
-        }
-
-        .tab-container.active {
-            display: block;
-        }
-
-        .tabs {
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
             display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-            border-bottom: 2px solid #e2e8f0;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 40px;
         }
 
-        .tab {
-            padding: 12px 24px;
-            background: none;
-            border: none;
-            border-bottom: 3px solid transparent;
-            cursor: pointer;
-            font-weight: 600;
-            color: #718096;
-            transition: all 0.2s;
+        .footer-brand p {
+            color: var(--text-muted);
+            font-size: 14px;
+            max-width: 300px;
+            margin-top: 12px;
         }
 
-        .tab:hover {
-            color: #667eea;
-            transform: none;
-            box-shadow: none;
+        .footer-links {
+            display: flex;
+            gap: 80px;
         }
 
-        .tab.active {
-            color: #667eea;
-            border-bottom-color: #667eea;
-        }
-
-        .quick-queries {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-
-        .quick-query-btn {
-            padding: 10px;
-            background: #edf2f7;
-            border: 2px solid #e2e8f0;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.2s;
+        .footer-column h4 {
             font-size: 13px;
-            text-align: left;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 16px;
         }
 
-        .quick-query-btn:hover {
-            background: #667eea;
-            color: white;
-            border-color: #667eea;
-            transform: translateY(-2px);
+        .footer-column a {
+            display: block;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+            margin-bottom: 8px;
         }
 
-        @media (max-width: 600px) {
-            .header h1 {
-                font-size: 22px;
+        .footer-column a:hover {
+            color: var(--text-primary);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            nav {
+                padding: 16px 20px;
             }
 
-            .button-group {
+            .nav-links {
+                display: none;
+            }
+
+            .hero {
+                padding: 120px 20px 60px;
+            }
+
+            .hero h1 {
+                font-size: 36px;
+            }
+
+            .hero p {
+                font-size: 16px;
+            }
+
+            .hero-cta {
                 flex-direction: column;
             }
 
-            button {
-                width: 100%;
+            .demo-section {
+                flex-direction: column;
+                padding: 20px;
+            }
+
+            .app-content {
+                grid-template-columns: 1fr;
+            }
+
+            .app-form {
+                border-right: none;
+                border-bottom: 1px solid var(--border-color);
+            }
+
+            .footer-content {
+                flex-direction: column;
+            }
+
+            .footer-links {
+                gap: 40px;
             }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>🚀 Neo4j Web Bridge</h1>
-            <p>Access your self-hosted Neo4j from anywhere, without TLS hassles</p>
+    <nav>
+        <a href="#" class="logo">
+            <div class="logo-icon">N</div>
+            Neo4j Web Bridge
+        </a>
+        <div class="nav-links">
+            <a href="https://github.com/MacStenk/neo4j-web-bridge" target="_blank">GitHub</a>
+            <a href="https://github.com/MacStenk/neo4j-web-bridge#readme" target="_blank">Docs</a>
+            <a href="#app" class="btn btn-primary">Try It Now</a>
         </div>
+    </nav>
 
-        <div class="content">
-            <div class="status">
-                <div class="status-indicator">
-                    <div class="status-dot" id="statusDot"></div>
+    <section class="hero">
+        <h1>Access Your <span>Neo4j Database</span> From Anywhere</h1>
+        <p>Connect to your self-hosted Neo4j without TLS configuration headaches. Works with Railway, Render, Docker, and any other platform.</p>
+        <div class="hero-cta">
+            <a href="#app" class="btn btn-primary">Try It Now</a>
+            <a href="https://github.com/MacStenk/neo4j-web-bridge" target="_blank" class="btn btn-secondary">View on GitHub</a>
+        </div>
+        <p class="hero-note">Free and open source. No account required.</p>
+    </section>
+
+    <section class="demo-section">
+        <div class="demo-visual">
+            <div class="connection-card">
+                <div class="card-header">
+                    <span class="dot dot-blue"></span>
+                    <span class="dot dot-blue"></span>
+                    <span class="dot dot-yellow"></span>
+                    <span class="dot dot-blue"></span>
+                </div>
+                <div class="connection-line medium"></div>
+                <div class="connection-line highlight"></div>
+                <div class="connection-line short"></div>
+            </div>
+            <div class="connection-card">
+                <div class="card-header">
+                    <span class="dot dot-green"></span>
+                </div>
+                <div class="connection-line long"></div>
+                <div class="connection-line highlight"></div>
+                <div class="connection-line medium"></div>
+            </div>
+            <div class="connection-card">
+                <div class="card-header">
+                    <span class="dot dot-blue"></span>
+                </div>
+                <div class="connection-line short"></div>
+                <div class="connection-line long"></div>
+                <div class="connection-line highlight"></div>
+            </div>
+        </div>
+        <div class="arrow-connector">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+            </svg>
+        </div>
+        <div class="code-preview">
+            <div class="code-header">
+                <span class="code-tab active">Response</span>
+                <span class="code-tab">Query</span>
+            </div>
+            <div class="code-content">
+{
+  <span class="key">"knowledgeGraph"</span>: {
+    <span class="key">"nodes"</span>: [
+      {
+        <span class="key">"id"</span>: <span class="string">"4:abc123"</span>,
+        <span class="key">"labels"</span>: [<span class="string">"Person"</span>],
+        <span class="key">"properties"</span>: {
+          <span class="key">"name"</span>: <span class="string">"Alice"</span>,
+          <span class="key">"age"</span>: 30
+        }
+      }
+    ],
+    <span class="key">"relationships"</span>: [...],
+  },
+  <span class="key">"summary"</span>: {
+    <span class="key">"counters"</span>: {...},
+    <span class="key">"resultConsumedAfter"</span>: 12
+  }
+}
+            </div>
+        </div>
+    </section>
+
+    <section class="trust-section">
+        <p>Works with any self-hosted Neo4j deployment</p>
+        <div class="trust-logos">
+            <span class="trust-logo">Railway</span>
+            <span class="trust-logo">Render</span>
+            <span class="trust-logo">Fly.io</span>
+            <span class="trust-logo">Docker</span>
+            <span class="trust-logo">DigitalOcean</span>
+            <span class="trust-logo">AWS</span>
+        </div>
+    </section>
+
+    <section class="features-section">
+        <h2>Why Neo4j Web Bridge?</h2>
+        <p>When you self-host Neo4j, accessing it remotely becomes complicated. We solve that.</p>
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                    </svg>
+                </div>
+                <h3>No TLS Configuration</h3>
+                <p>Connect via bolt:// without wrestling with certificates, port configurations, or encryption settings.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064"></path>
+                    </svg>
+                </div>
+                <h3>Access From Anywhere</h3>
+                <p>Query your database from any browser, any location, any device. No VPN required.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                    </svg>
+                </div>
+                <h3>Direct Bolt Protocol</h3>
+                <p>Uses the official Neo4j driver for fast, native Bolt protocol communication with your database.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                    </svg>
+                </div>
+                <h3>Open Source</h3>
+                <p>MIT licensed. Self-host it, modify it, contribute to it. Your data stays yours.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="how-section">
+        <h2>How It Works</h2>
+        <div class="how-diagram">
+            <div class="how-box">
+                <div class="icon">Browser</div>
+                <h4>Your Browser</h4>
+                <p>HTTPS</p>
+            </div>
+            <span class="how-arrow">→</span>
+            <div class="how-box" style="border-color: var(--accent);">
+                <div class="icon">Bridge</div>
+                <h4>Neo4j Web Bridge</h4>
+                <p>Handles TLS</p>
+            </div>
+            <span class="how-arrow">→</span>
+            <div class="how-box">
+                <div class="icon">DB</div>
+                <h4>Neo4j Database</h4>
+                <p>bolt://</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="app-section" id="app">
+        <div class="app-container">
+            <div class="app-header">
+                <span class="app-title">Neo4j Web Bridge</span>
+                <div class="app-status">
+                    <span class="status-dot" id="statusDot"></span>
                     <span id="statusText">Not Connected</span>
                 </div>
-                <button class="btn-danger" id="disconnectBtn" style="display: none;" onclick="disconnect()">
-                    Disconnect
-                </button>
             </div>
-
-            <div class="tabs">
-                <button class="tab active" onclick="switchTab('connect')">Connect</button>
-                <button class="tab" onclick="switchTab('query')">Query</button>
-            </div>
-
-            <!-- Connect Tab -->
-            <div id="connectTab" class="tab-container active">
-                <div class="form-group">
-                    <label for="uri">Database URL</label>
-                    <input type="text" id="uri" placeholder="bolt://your-neo4j-host:7687" value="bolt://yamanote.proxy.rlwy.net:36570">
-                </div>
-
-                <div class="form-group">
-                    <label for="username">Username</label>
-                    <input type="text" id="username" placeholder="neo4j" value="neo4j">
-                </div>
-
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <input type="password" id="password" placeholder="Enter password" value="">
-                </div>
-
-                <div class="form-group">
-                    <label for="database">Database</label>
-                    <input type="text" id="database" placeholder="neo4j" value="neo4j">
-                </div>
-
-                <div class="button-group">
-                    <button class="btn-primary" onclick="connect()">Connect</button>
-                </div>
-
-                <div class="error" id="connectError"></div>
-                <div class="success" id="connectSuccess"></div>
-            </div>
-
-            <!-- Query Tab -->
-            <div id="queryTab" class="tab-container">
-                <div class="quick-queries">
-                    <button class="quick-query-btn" onclick="setQuery('MATCH (n) RETURN n LIMIT 25')">
-                        Show Nodes
-                    </button>
-                    <button class="quick-query-btn" onclick="setQuery('MATCH (n)-[r]->(m) RETURN n, r, m LIMIT 25')">
-                        Show Graph
-                    </button>
-                    <button class="quick-query-btn" onclick="setQuery('CALL db.labels()')">
-                        List Labels
-                    </button>
-                    <button class="quick-query-btn" onclick="setQuery('CALL db.relationshipTypes()')">
-                        Relationship Types
-                    </button>
-                </div>
-
-                <div class="form-group">
-                    <label for="cypher">Cypher Query</label>
-                    <textarea id="cypher" placeholder="MATCH (n) RETURN n LIMIT 25"></textarea>
-                </div>
-
-                <div class="button-group">
-                    <button class="btn-primary" onclick="executeQuery()">Execute</button>
-                    <button class="btn-secondary" onclick="clearQuery()">Clear</button>
-                </div>
-
-                <div class="error" id="queryError"></div>
-
-                <div class="results" id="results">
-                    <div class="results-header">
-                        <h3>Results</h3>
-                        <div class="results-meta" id="resultsMeta"></div>
+            <div class="app-content">
+                <div class="app-form">
+                    <div class="message error" id="errorMsg"></div>
+                    <div class="message success" id="successMsg"></div>
+                    
+                    <div class="form-group">
+                        <label>Database URL</label>
+                        <input type="text" id="uri" placeholder="bolt://your-neo4j-host:7687">
                     </div>
-                    <div class="results-table">
-                        <pre id="resultsContent"></pre>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Username</label>
+                            <input type="text" id="username" placeholder="neo4j" value="neo4j">
+                        </div>
+                        <div class="form-group">
+                            <label>Password</label>
+                            <input type="password" id="password" placeholder="Password">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Database</label>
+                        <input type="text" id="database" placeholder="neo4j" value="neo4j">
+                    </div>
+                    <button class="btn btn-primary" id="connectBtn" onclick="connect()" style="width: 100%; margin-bottom: 24px;">Connect</button>
+                    
+                    <div class="quick-actions">
+                        <button class="quick-btn" onclick="setQuery('MATCH (n) RETURN n LIMIT 25')">Show Nodes</button>
+                        <button class="quick-btn" onclick="setQuery('MATCH (n)-[r]->(m) RETURN n, r, m LIMIT 25')">Show Graph</button>
+                        <button class="quick-btn" onclick="setQuery('CALL db.labels()')">List Labels</button>
+                        <button class="quick-btn" onclick="setQuery('CALL db.relationshipTypes()')">Relationships</button>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Cypher Query</label>
+                        <textarea id="cypher" placeholder="MATCH (n) RETURN n LIMIT 25"></textarea>
+                    </div>
+                    <button class="btn btn-primary" onclick="executeQuery()" style="width: 100%;">Execute Query</button>
+                </div>
+                <div class="app-results">
+                    <div class="results-placeholder" id="resultsPlaceholder">
+                        <p>Results will appear here</p>
+                    </div>
+                    <div id="resultsContainer" style="display: none;">
+                        <div class="results-meta" id="resultsMeta"></div>
+                        <div class="results-content" id="resultsContent"></div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
+    </section>
+
+    <footer>
+        <div class="footer-content">
+            <div class="footer-brand">
+                <a href="#" class="logo">
+                    <div class="logo-icon">N</div>
+                    Neo4j Web Bridge
+                </a>
+                <p>Access your self-hosted Neo4j database from anywhere.</p>
+            </div>
+            <div class="footer-links">
+                <div class="footer-column">
+                    <h4>Product</h4>
+                    <a href="#app">Try It</a>
+                    <a href="https://github.com/MacStenk/neo4j-web-bridge#readme" target="_blank">Documentation</a>
+                </div>
+                <div class="footer-column">
+                    <h4>Resources</h4>
+                    <a href="https://github.com/MacStenk/neo4j-web-bridge" target="_blank">GitHub</a>
+                    <a href="https://github.com/MacStenk/neo4j-web-bridge/issues" target="_blank">Issues</a>
+                </div>
+                <div class="footer-column">
+                    <h4>Legal</h4>
+                    <a href="https://github.com/MacStenk/neo4j-web-bridge/blob/main/LICENSE" target="_blank">MIT License</a>
+                </div>
+            </div>
+        </div>
+    </footer>
 
     <script>
         let isConnected = false;
 
-        function switchTab(tab) {
-            // Update tabs
-            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.tab-container').forEach(c => c.classList.remove('active'));
+        function showMessage(type, text) {
+            const errorMsg = document.getElementById('errorMsg');
+            const successMsg = document.getElementById('successMsg');
             
-            event.target.classList.add('active');
-            document.getElementById(tab + 'Tab').classList.add('active');
+            errorMsg.classList.remove('show');
+            successMsg.classList.remove('show');
+            
+            if (type === 'error') {
+                errorMsg.textContent = text;
+                errorMsg.classList.add('show');
+            } else {
+                successMsg.textContent = text;
+                successMsg.classList.add('show');
+            }
         }
 
         async function connect() {
@@ -424,15 +963,8 @@
             const password = document.getElementById('password').value;
             const database = document.getElementById('database').value;
 
-            const errorEl = document.getElementById('connectError');
-            const successEl = document.getElementById('connectSuccess');
-            
-            errorEl.classList.remove('show');
-            successEl.classList.remove('show');
-
             if (!uri || !username || !password) {
-                errorEl.textContent = 'Please fill in all required fields';
-                errorEl.classList.add('show');
+                showMessage('error', 'Please fill in all required fields');
                 return;
             }
 
@@ -448,55 +980,43 @@
                 if (data.success) {
                     isConnected = true;
                     document.getElementById('statusDot').classList.add('connected');
-                    document.getElementById('statusText').textContent = `Connected to ${data.uri}`;
-                    document.getElementById('disconnectBtn').style.display = 'block';
-                    
-                    successEl.textContent = '✅ Connected successfully!';
-                    successEl.classList.add('show');
-
-                    // Switch to query tab
-                    setTimeout(() => switchTab('query'), 1000);
+                    document.getElementById('statusText').textContent = 'Connected';
+                    document.getElementById('connectBtn').textContent = 'Disconnect';
+                    document.getElementById('connectBtn').onclick = disconnect;
+                    showMessage('success', 'Connected successfully');
                 } else {
                     throw new Error(data.error);
                 }
             } catch (error) {
-                errorEl.textContent = '❌ ' + error.message;
-                errorEl.classList.add('show');
+                showMessage('error', error.message);
             }
         }
 
         async function disconnect() {
             try {
                 await fetch('/api/disconnect', { method: 'POST' });
-                
                 isConnected = false;
                 document.getElementById('statusDot').classList.remove('connected');
                 document.getElementById('statusText').textContent = 'Not Connected';
-                document.getElementById('disconnectBtn').style.display = 'none';
-                
-                switchTab('connect');
+                document.getElementById('connectBtn').textContent = 'Connect';
+                document.getElementById('connectBtn').onclick = connect;
+                showMessage('success', 'Disconnected');
             } catch (error) {
-                alert('Failed to disconnect: ' + error.message);
+                showMessage('error', error.message);
             }
         }
 
         async function executeQuery() {
             if (!isConnected) {
-                alert('Please connect to Neo4j first');
+                showMessage('error', 'Please connect to Neo4j first');
                 return;
             }
 
             const cypher = document.getElementById('cypher').value;
             const database = document.getElementById('database').value;
-            const errorEl = document.getElementById('queryError');
-            const resultsEl = document.getElementById('results');
-            
-            errorEl.classList.remove('show');
-            resultsEl.classList.remove('show');
 
             if (!cypher) {
-                errorEl.textContent = 'Please enter a Cypher query';
-                errorEl.classList.add('show');
+                showMessage('error', 'Please enter a Cypher query');
                 return;
             }
 
@@ -510,19 +1030,17 @@
                 const data = await response.json();
 
                 if (data.success) {
+                    document.getElementById('resultsPlaceholder').style.display = 'none';
+                    document.getElementById('resultsContainer').style.display = 'block';
+                    document.getElementById('resultsMeta').textContent = 
+                        `${data.records.length} records · ${data.summary.resultConsumedAfter}ms`;
                     document.getElementById('resultsContent').textContent = 
                         JSON.stringify(data.records, null, 2);
-                    
-                    document.getElementById('resultsMeta').textContent = 
-                        `${data.records.length} records • ${data.summary.resultConsumedAfter}ms`;
-                    
-                    resultsEl.classList.add('show');
                 } else {
                     throw new Error(data.error);
                 }
             } catch (error) {
-                errorEl.textContent = '❌ ' + error.message;
-                errorEl.classList.add('show');
+                showMessage('error', error.message);
             }
         }
 
@@ -530,18 +1048,10 @@
             document.getElementById('cypher').value = query;
         }
 
-        function clearQuery() {
-            document.getElementById('cypher').value = '';
-            document.getElementById('results').classList.remove('show');
-            document.getElementById('queryError').classList.remove('show');
-        }
-
-        // Enter key to connect
         document.getElementById('password').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') connect();
         });
 
-        // Ctrl/Cmd + Enter to execute query
         document.getElementById('cypher').addEventListener('keydown', (e) => {
             if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') executeQuery();
         });
