@@ -2,9 +2,16 @@
 
 **Access your self-hosted Neo4j database from anywhere, without TLS configuration headaches.**
 
+[![Live Demo](https://img.shields.io/badge/demo-live-success)](https://neo4j-web-bridge-production.up.railway.app)
 [![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/template/neo4j-web-bridge)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen)](https://nodejs.org)
+
+## 🎮 Try it Live
+
+**[→ Live Demo on Railway](https://neo4j-web-bridge-production.up.railway.app)** 
+
+Connect to your own Neo4j instance or use our demo to try it out!
 
 ---
 
