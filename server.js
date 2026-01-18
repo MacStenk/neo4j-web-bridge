@@ -13,15 +13,155 @@ const __dirname = dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware
-app.use(cors());
-app.use(express.json());
+// =============================================================================
+// SECURITY CONFIGURATION
+// =============================================================================
+
+const API_KEY = process.env.API_KEY;
+const CORS_ORIGINS = process.env.CORS_ORIGINS 
+  ? process.env.CORS_ORIGINS.split(',').map(o => o.trim())
+  : ['http://localhost:3000', 'http://localhost:3001'];
+
+// Rate limiting configuration
+const RATE_LIMIT_WINDOW_MS = parseInt(process.env.RATE_LIMIT_WINDOW_MS || '60000');
+const RATE_LIMIT_MAX_REQUESTS = parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100');
+
+// Simple in-memory rate limiter
+const rateLimitStore = new Map();
+
+function rateLimit(req, res, next) {
+  const ip = req.ip || req.connection.remoteAddress || 'unknown';
+  const now = Date.now();
+  
+  if (!rateLimitStore.has(ip)) {
+    rateLimitStore.set(ip, { count: 1, resetTime: now + RATE_LIMIT_WINDOW_MS });
+    return next();
+  }
+  
+  const record = rateLimitStore.get(ip);
+  
+  if (now > record.resetTime) {
+    record.count = 1;
+    record.resetTime = now + RATE_LIMIT_WINDOW_MS;
+    return next();
+  }
+  
+  record.count++;
+  
+  if (record.count > RATE_LIMIT_MAX_REQUESTS) {
+    return res.status(429).json({ 
+      error: 'Too many requests. Please try again later.',
+      retryAfter: Math.ceil((record.resetTime - now) / 1000)
+    });
+  }
+  
+  next();
+}
+
+// Clean up old rate limit entries every 5 minutes
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, record] of rateLimitStore.entries()) {
+    if (now > record.resetTime) {
+      rateLimitStore.delete(ip);
+    }
+  }
+}, 5 * 60 * 1000);
+
+// API Key authentication middleware
+function requireApiKey(req, res, next) {
+  // Skip API key check if not configured (development mode)
+  if (!API_KEY) {
+    console.warn('⚠️  WARNING: API_KEY not set. Running in insecure mode!');
+    return next();
+  }
+  
+  const providedKey = req.headers['x-api-key'] || req.headers['authorization']?.replace('Bearer ', '');
+  
+  if (!providedKey) {
+    return res.status(401).json({ error: 'API key required. Provide via X-API-Key header or Authorization: Bearer <key>' });
+  }
+  
+  if (providedKey !== API_KEY) {
+    return res.status(403).json({ error: 'Invalid API key' });
+  }
+  
+  next();
+}
+
+// CORS configuration
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl)
+    if (!origin) {
+      return callback(null, true);
+    }
+    
+    if (CORS_ORIGINS.includes('*') || CORS_ORIGINS.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.warn(`CORS blocked origin: ${origin}`);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'X-API-Key', 'Authorization']
+};
+
+// Security headers middleware
+function securityHeaders(req, res, next) {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  next();
+}
+
+// Input validation for Cypher queries
+function validateCypherInput(cypher) {
+  if (!cypher || typeof cypher !== 'string') {
+    return { valid: false, error: 'Cypher query must be a non-empty string' };
+  }
+  
+  if (cypher.length > 10000) {
+    return { valid: false, error: 'Cypher query too long (max 10000 characters)' };
+  }
+  
+  // Block dangerous operations (optional - uncomment if needed)
+  // const dangerousPatterns = [
+  //   /CALL\s+dbms\.security/i,
+  //   /CALL\s+db\.createUser/i,
+  //   /CALL\s+db\.dropUser/i,
+  // ];
+  // 
+  // for (const pattern of dangerousPatterns) {
+  //   if (pattern.test(cypher)) {
+  //     return { valid: false, error: 'This operation is not allowed' };
+  //   }
+  // }
+  
+  return { valid: true };
+}
+
+// =============================================================================
+// MIDDLEWARE SETUP
+// =============================================================================
+
+app.use(securityHeaders);
+app.use(cors(corsOptions));
+app.use(express.json({ limit: '1mb' }));
 app.use(express.static(join(__dirname, 'public')));
 
-// Neo4j connection pool
+// Apply rate limiting to API routes
+app.use('/api', rateLimit);
+
+// =============================================================================
+// NEO4J CONNECTION
+// =============================================================================
+
 let driver = null;
 
-// Auto-connect on startup if credentials are provided
 async function autoConnect() {
   const uri = process.env.NEO4J_URI;
   const username = process.env.NEO4J_USER || process.env.NEO4J_USERNAME;
@@ -44,7 +184,6 @@ async function autoConnect() {
         }
       );
 
-      // Verify connectivity
       const session = driver.session({ database });
       await session.run('RETURN 1');
       await session.close();
@@ -62,19 +201,27 @@ async function autoConnect() {
   return false;
 }
 
-// Health check endpoint
+// =============================================================================
+// API ENDPOINTS
+// =============================================================================
+
+// Health check - public (no auth required)
 app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'ok', 
-    version: '1.0.0',
+    version: '1.1.0',
     connected: driver !== null,
     autoConnect: !!(process.env.NEO4J_URI && process.env.NEO4J_PASSWORD),
+    security: {
+      apiKeyRequired: !!API_KEY,
+      corsOrigins: CORS_ORIGINS.includes('*') ? 'all' : CORS_ORIGINS.length
+    },
     timestamp: new Date().toISOString() 
   });
 });
 
-// Connect to Neo4j
-app.post('/api/connect', async (req, res) => {
+// Connect to Neo4j - requires API key
+app.post('/api/connect', requireApiKey, async (req, res) => {
   try {
     const { uri, username, password, database = 'neo4j' } = req.body;
 
@@ -84,25 +231,22 @@ app.post('/api/connect', async (req, res) => {
       });
     }
 
-    // Close existing driver if any
     if (driver) {
       await driver.close();
     }
 
-    // Create new driver (always use bolt:// for self-hosted)
     const cleanUri = uri.replace(/^(neo4j\+s|bolt\+s|https):\/\//, 'bolt://');
     
     driver = neo4j.driver(
       cleanUri,
       neo4j.auth.basic(username, password),
       {
-        maxConnectionLifetime: 3 * 60 * 1000, // 3 minutes
+        maxConnectionLifetime: 3 * 60 * 1000,
         maxConnectionPoolSize: 50,
-        connectionAcquisitionTimeout: 2 * 60 * 1000, // 2 minutes
+        connectionAcquisitionTimeout: 2 * 60 * 1000,
       }
     );
 
-    // Verify connectivity
     const session = driver.session({ database });
     await session.run('RETURN 1');
     await session.close();
@@ -122,8 +266,8 @@ app.post('/api/connect', async (req, res) => {
   }
 });
 
-// Execute Cypher query
-app.post('/api/query', async (req, res) => {
+// Execute Cypher query - requires API key
+app.post('/api/query', requireApiKey, async (req, res) => {
   try {
     if (!driver) {
       return res.status(400).json({ 
@@ -133,8 +277,10 @@ app.post('/api/query', async (req, res) => {
 
     const { cypher, params = {}, database = 'neo4j' } = req.body;
 
-    if (!cypher) {
-      return res.status(400).json({ error: 'Cypher query is required' });
+    // Validate input
+    const validation = validateCypherInput(cypher);
+    if (!validation.valid) {
+      return res.status(400).json({ error: validation.error });
     }
 
     const session = driver.session({ database });
@@ -142,7 +288,6 @@ app.post('/api/query', async (req, res) => {
     try {
       const result = await session.run(cypher, params);
       
-      // Convert Neo4j result to JSON
       const records = result.records.map(record => {
         const obj = {};
         record.keys.forEach((key, i) => {
@@ -175,8 +320,8 @@ app.post('/api/query', async (req, res) => {
   }
 });
 
-// Get server info
-app.get('/api/info', async (req, res) => {
+// Get server info - requires API key
+app.get('/api/info', requireApiKey, async (req, res) => {
   try {
     if (!driver) {
       return res.status(400).json({ 
@@ -212,8 +357,8 @@ app.get('/api/info', async (req, res) => {
   }
 });
 
-// Disconnect
-app.post('/api/disconnect', async (req, res) => {
+// Disconnect - requires API key
+app.post('/api/disconnect', requireApiKey, async (req, res) => {
   try {
     if (driver) {
       await driver.close();
@@ -225,7 +370,10 @@ app.post('/api/disconnect', async (req, res) => {
   }
 });
 
-// Helper: Convert Neo4j types to JSON
+// =============================================================================
+// HELPER FUNCTIONS
+// =============================================================================
+
 function convertNeo4jValue(value) {
   if (value === null || value === undefined) {
     return null;
@@ -268,7 +416,10 @@ function convertNeo4jValue(value) {
   return value;
 }
 
-// Graceful shutdown
+// =============================================================================
+// GRACEFUL SHUTDOWN
+// =============================================================================
+
 process.on('SIGINT', async () => {
   console.log('Shutting down gracefully...');
   if (driver) {
@@ -285,15 +436,20 @@ process.on('SIGTERM', async () => {
   process.exit(0);
 });
 
-// Start server with auto-connect
+// =============================================================================
+// START SERVER
+// =============================================================================
+
 app.listen(PORT, async () => {
   console.log(`
-╔═══════════════════════════════════════════╗
-║       Neo4j Web Bridge v1.0.0             ║
-╠═══════════════════════════════════════════╣
-║  Server:  http://localhost:${PORT}           ║
-║  API:     http://localhost:${PORT}/api       ║
-╚═══════════════════════════════════════════╝
+╔═══════════════════════════════════════════════════════════╗
+║           Neo4j Web Bridge v1.1.0                         ║
+╠═══════════════════════════════════════════════════════════╣
+║  Server:    http://localhost:${PORT}                         ║
+║  API:       http://localhost:${PORT}/api                     ║
+║  Security:  ${API_KEY ? '✅ API Key required' : '⚠️  No API Key (insecure!)'}               ║
+║  CORS:      ${CORS_ORIGINS.includes('*') ? '⚠️  All origins allowed' : `✅ ${CORS_ORIGINS.length} origin(s) whitelisted`}             ║
+╚═══════════════════════════════════════════════════════════╝
   `);
   
   await autoConnect();

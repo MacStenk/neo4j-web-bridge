@@ -34,6 +34,7 @@ docker run -p 3000:3000 \
   -e NEO4J_URI=bolt://your-neo4j:7687 \
   -e NEO4J_USER=neo4j \
   -e NEO4J_PASSWORD=your-password \
+  -e API_KEY=your-secret-api-key \
   neo4j-web-bridge
 ```
 
@@ -57,72 +58,97 @@ npm start
 | `NEO4J_USER` | No* | Neo4j username |
 | `NEO4J_PASSWORD` | No* | Neo4j password |
 | `NEO4J_DATABASE` | No | Database name (default: `neo4j`) |
+| `API_KEY` | **Yes** | Secret key for API authentication |
+| `CORS_ORIGINS` | No | Comma-separated allowed origins (default: localhost) |
+| `RATE_LIMIT_WINDOW_MS` | No | Rate limit window in ms (default: 60000) |
+| `RATE_LIMIT_MAX_REQUESTS` | No | Max requests per window (default: 100) |
 
-*If all three `NEO4J_*` credentials are set, the bridge auto-connects on startup. Otherwise, manual connection via UI or API is required.
+*If all three `NEO4J_*` credentials are set, the bridge auto-connects on startup.
 
-### Auto-Connect Mode
+## Security Features
 
-For API/Gateway usage, set the environment variables and the bridge connects automatically:
+| Feature | Description |
+|---------|-------------|
+| API Key Authentication | All API endpoints require `X-API-Key` header |
+| CORS Whitelist | Only allowed origins can make requests |
+| Rate Limiting | Prevents abuse (100 req/min default) |
+| Input Validation | Cypher queries are validated (max 10k chars) |
+| Security Headers | X-Content-Type-Options, X-Frame-Options, etc. |
+
+### API Authentication
+
+All API endpoints (except `/api/health`) require authentication:
 
 ```bash
-NEO4J_URI=bolt://yamanote.proxy.rlwy.net:36570
-NEO4J_USER=neo4j
-NEO4J_PASSWORD=your-password
-```
-
-On startup:
-```
-✅ Auto-connected to Neo4j: bolt://yamanote.proxy.rlwy.net:36570
-```
-
-### Manual Connect Mode
-
-Without environment variables, users connect via the Web UI or API:
-
-```bash
-curl -X POST http://localhost:3000/api/connect \
+# Using X-API-Key header
+curl -X POST https://your-bridge.railway.app/api/query \
   -H "Content-Type: application/json" \
-  -d '{"uri":"bolt://host:7687","username":"neo4j","password":"xxx"}'
+  -H "X-API-Key: your-secret-api-key" \
+  -d '{"cypher": "MATCH (n) RETURN count(n)"}'
+
+# Using Authorization header
+curl -X POST https://your-bridge.railway.app/api/query \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer your-secret-api-key" \
+  -d '{"cypher": "MATCH (n) RETURN count(n)"}'
+```
+
+### CORS Configuration
+
+```bash
+# Allow specific origins
+CORS_ORIGINS=https://mcp-gateway.codeback.de,https://myapp.com
+
+# Allow all origins (NOT recommended for production)
+CORS_ORIGINS=*
 ```
 
 ## API Reference
 
-### Health Check
+### Health Check (Public)
 ```
 GET /api/health
-→ { status: "ok", version: "1.0.0", connected: true, autoConnect: true }
+→ { status: "ok", version: "1.1.0", connected: true, security: {...} }
 ```
 
-### Connect (Manual Mode)
+### Connect (Requires API Key)
 ```
 POST /api/connect
+Headers: X-API-Key: your-key
 Body: { uri, username, password, database }
 ```
 
-### Execute Query
+### Execute Query (Requires API Key)
 ```
 POST /api/query
+Headers: X-API-Key: your-key
 Body: { cypher, params, database }
 ```
 
-### Disconnect
+### Disconnect (Requires API Key)
 ```
 POST /api/disconnect
+Headers: X-API-Key: your-key
 ```
 
 ## Use with MCP Gateway
 
 Neo4j Web Bridge works as a backend for [MCP Gateway](https://github.com/MacStenk/mcp-gateway):
 
-1. Deploy Neo4j Web Bridge with auto-connect credentials
-2. Add the Bridge URL to MCP Gateway config
-3. Chat with your Neo4j database via Gemini AI
+1. Deploy Neo4j Web Bridge with `API_KEY` and auto-connect credentials
+2. Add the Bridge URL to MCP Gateway with API Key authentication
+3. Chat with your Neo4j database via AI
 
 ```json
 {
   "name": "neo4j",
   "type": "neo4j",
-  "url": "https://your-neo4j-bridge.railway.app"
+  "url": "https://your-neo4j-bridge.railway.app",
+  "auth": {
+    "type": "apikey",
+    "key": "your-secret-api-key",
+    "header": "X-API-Key"
+  }
 }
 ```
 
@@ -131,7 +157,7 @@ Neo4j Web Bridge works as a backend for [MCP Gateway](https://github.com/MacSten
 ```
 ┌─────────────┐         HTTPS          ┌──────────────────┐
 │   Browser   │ ──────────────────────→│  Neo4j Web       │
-│  / Gateway  │                        │  Bridge          │
+│  / Gateway  │    + API Key Auth      │  Bridge          │
 └─────────────┘                        └──────────────────┘
                                               │
                                               │ Bolt Protocol
@@ -141,6 +167,21 @@ Neo4j Web Bridge works as a backend for [MCP Gateway](https://github.com/MacSten
                                        │   Database       │
                                        └──────────────────┘
 ```
+
+## Changelog
+
+### v1.1.0 (2026-01-19)
+- Added API Key authentication for all endpoints
+- Added CORS whitelist configuration
+- Added rate limiting (configurable)
+- Added security headers
+- Added input validation for Cypher queries
+
+### v1.0.0 (2026-01-18)
+- Initial release
+- Auto-connect mode
+- Web UI for manual connection
+- Basic query execution
 
 ## License
 
