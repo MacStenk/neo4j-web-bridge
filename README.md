@@ -42,6 +42,23 @@ Browser (HTTPS) → Neo4j Web Bridge → Neo4j (bolt://)
 
 ---
 
+## Security Notice
+
+The connection between Neo4j Web Bridge and your Neo4j database uses unencrypted `bolt://` protocol.
+
+**This is secure when:**
+- Bridge and Neo4j are deployed on the **same platform** (e.g., both on Railway)
+- Traffic stays within the platform's **private network**
+- No sensitive data crosses the public internet unencrypted
+
+**This is NOT secure when:**
+- Bridge and Neo4j are on **different platforms/servers**
+- The `bolt://` connection goes over the **public internet**
+
+**Recommended Setup:** Deploy both Neo4j Web Bridge and your Neo4j database on the same Railway project. Use [neo4j-railway](https://github.com/MacStenk/neo4j-railway) for a production-ready Neo4j deployment that works seamlessly with this bridge.
+
+---
+
 ## Quick Start
 
 ### Option 1: One-Click Deploy (Railway)
@@ -86,9 +103,9 @@ Database: neo4j
 
 | Platform | URL |
 |----------|-----|
-| Railway | `bolt://yamanote.proxy.rlwy.net:36570` |
+| Railway (internal) | `bolt://neo4j.railway.internal:7687` |
+| Railway (TCP Proxy) | `bolt://maglev.proxy.rlwy.net:36570` |
 | Docker | `bolt://localhost:7687` |
-| Remote | `bolt://your-server.com:7687` |
 
 ### Run Queries
 
@@ -112,6 +129,7 @@ Quick queries are available for common operations: Show Nodes, Show Graph, List 
 └─────────────┘         JSON            └──────────────────┘
                                                │
                                                │ Bolt Protocol
+                                               │ (private network)
                                                ↓
                                         ┌──────────────────┐
                                         │   Neo4j          │
@@ -123,11 +141,11 @@ Quick queries are available for common operations: Show Nodes, Show Graph, List 
 
 ## Deployment
 
-### Railway
+### Railway (Recommended)
 
-1. Create new project in Railway
-2. Connect GitHub repository
-3. Railway auto-detects and builds
+1. Deploy Neo4j using [neo4j-railway](https://github.com/MacStenk/neo4j-railway)
+2. Deploy Neo4j Web Bridge in the same project
+3. Connect via internal network: `bolt://neo4j.railway.internal:7687`
 4. Access via generated Railway domain
 
 ### Render
@@ -169,9 +187,9 @@ docker run -p 3000:3000 neo4j-web-bridge
 
 - Always deploy with HTTPS in production
 - Never use default passwords
+- Keep Bridge and Neo4j on the same platform/network
 - Restrict Neo4j access to known IPs if possible
 - Consider adding authentication to the web bridge
-- Best used in private networks or VPNs
 
 ---
 
@@ -199,6 +217,14 @@ Body: { cypher, params, database }
 ```
 POST /api/disconnect
 ```
+
+---
+
+## Related Projects
+
+| Project | Description |
+|---------|-------------|
+| [neo4j-railway](https://github.com/MacStenk/neo4j-railway) | Production-ready Neo4j deployment for Railway. Deploy your database with one click, then use Neo4j Web Bridge to access it. |
 
 ---
 
