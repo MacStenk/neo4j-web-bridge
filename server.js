@@ -21,11 +21,54 @@ app.use(express.static(join(__dirname, 'public')));
 // Neo4j connection pool
 let driver = null;
 
+// Auto-connect on startup if credentials are provided
+async function autoConnect() {
+  const uri = process.env.NEO4J_URI;
+  const username = process.env.NEO4J_USER || process.env.NEO4J_USERNAME;
+  const password = process.env.NEO4J_PASSWORD;
+  const database = process.env.NEO4J_DATABASE || 'neo4j';
+
+  if (uri && username && password) {
+    console.log('Auto-connect enabled. Connecting to Neo4j...');
+    
+    try {
+      const cleanUri = uri.replace(/^(neo4j\+s|bolt\+s|https):\/\//, 'bolt://');
+      
+      driver = neo4j.driver(
+        cleanUri,
+        neo4j.auth.basic(username, password),
+        {
+          maxConnectionLifetime: 3 * 60 * 1000,
+          maxConnectionPoolSize: 50,
+          connectionAcquisitionTimeout: 2 * 60 * 1000,
+        }
+      );
+
+      // Verify connectivity
+      const session = driver.session({ database });
+      await session.run('RETURN 1');
+      await session.close();
+
+      console.log(`✅ Auto-connected to Neo4j: ${cleanUri}`);
+      return true;
+    } catch (error) {
+      console.error('❌ Auto-connect failed:', error.message);
+      driver = null;
+      return false;
+    }
+  }
+  
+  console.log('No auto-connect credentials. Manual connection required.');
+  return false;
+}
+
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'ok', 
     version: '1.0.0',
+    connected: driver !== null,
+    autoConnect: !!(process.env.NEO4J_URI && process.env.NEO4J_PASSWORD),
     timestamp: new Date().toISOString() 
   });
 });
@@ -242,9 +285,16 @@ process.on('SIGTERM', async () => {
   process.exit(0);
 });
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`Neo4j Web Bridge running on port ${PORT}`);
-  console.log(`API: http://localhost:${PORT}/api`);
-  console.log(`Web UI: http://localhost:${PORT}`);
+// Start server with auto-connect
+app.listen(PORT, async () => {
+  console.log(`
+╔═══════════════════════════════════════════╗
+║       Neo4j Web Bridge v1.0.0             ║
+╠═══════════════════════════════════════════╣
+║  Server:  http://localhost:${PORT}           ║
+║  API:     http://localhost:${PORT}/api       ║
+╚═══════════════════════════════════════════╝
+  `);
+  
+  await autoConnect();
 });

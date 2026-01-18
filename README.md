@@ -1,27 +1,17 @@
 # Neo4j Web Bridge
 
-**Access your self-hosted Neo4j database from anywhere, without TLS configuration headaches.**
+Access your self-hosted Neo4j database from anywhere, without TLS configuration headaches.
 
-[![Live Demo](https://img.shields.io/badge/demo-live-58a6ff)](https://neo4j-web-bridge-production.up.railway.app)
-[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/template/neo4j-web-bridge)
-[![License: MIT](https://img.shields.io/badge/License-MIT-58a6ff.svg)](https://opensource.org/licenses/MIT)
-
-[Live Demo](https://neo4j-web-bridge-production.up.railway.app) · [Documentation](#usage) · [Deploy](#quick-start)
-
----
+[![Live Demo](https://img.shields.io/badge/demo-live-success)](https://neo4j-web-bridge-production.up.railway.app)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ## The Problem
 
-When you self-host Neo4j on platforms like Railway, Render, Fly.io, or Docker, accessing the Neo4j Browser remotely becomes complicated:
+When you self-host Neo4j on platforms like Railway, Render, or Docker, accessing the Neo4j Browser remotely becomes complicated:
 
-- **Browser requires HTTPS** but Neo4j uses `bolt://` (unencrypted)
-- **TCP Proxies don't handle TLS termination** for Bolt protocol  
-- **Complex TLS setup** with certificates, configuration, and maintenance
-- **Can't access from different locations** without VPN or complex networking
-
-Even Neo4j Aura's console can't connect to self-hosted Neo4j without TLS.
-
----
+- Browser requires HTTPS but Neo4j uses `bolt://` (unencrypted)
+- TCP Proxies don't handle TLS termination for Bolt protocol
+- Complex TLS setup with certificates, configuration, and maintenance
 
 ## The Solution
 
@@ -29,35 +19,7 @@ Neo4j Web Bridge is a lightweight proxy that handles TLS termination:
 
 ```
 Browser (HTTPS) → Neo4j Web Bridge → Neo4j (bolt://)
-                   ↑ Handles TLS
 ```
-
-### Features
-
-- **Works everywhere** — Railway, Render, Fly.io, Heroku, Docker, Cloud VMs
-- **Zero TLS config** — Connect and go
-- **Modern UI** — Clean, responsive web interface  
-- **Fast** — Direct Bolt protocol communication
-- **Open Source** — MIT licensed, self-host it yourself
-
----
-
-## Security Notice
-
-The connection between Neo4j Web Bridge and your Neo4j database uses unencrypted `bolt://` protocol.
-
-**This is secure when:**
-- Bridge and Neo4j are deployed on the **same platform** (e.g., both on Railway)
-- Traffic stays within the platform's **private network**
-- No sensitive data crosses the public internet unencrypted
-
-**This is NOT secure when:**
-- Bridge and Neo4j are on **different platforms/servers**
-- The `bolt://` connection goes over the **public internet**
-
-**Recommended Setup:** Deploy both Neo4j Web Bridge and your Neo4j database on the same Railway project. Use [neo4j-railway](https://github.com/MacStenk/neo4j-railway) for a production-ready Neo4j deployment that works seamlessly with this bridge.
-
----
 
 ## Quick Start
 
@@ -65,14 +27,14 @@ The connection between Neo4j Web Bridge and your Neo4j database uses unencrypted
 
 [![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/template/neo4j-web-bridge)
 
-1. Click the button above
-2. Configure environment variables (optional)
-3. Deploy
-
 ### Option 2: Docker
 
 ```bash
-docker run -p 3000:3000 neo4j-web-bridge
+docker run -p 3000:3000 \
+  -e NEO4J_URI=bolt://your-neo4j:7687 \
+  -e NEO4J_USER=neo4j \
+  -e NEO4J_PASSWORD=your-password \
+  neo4j-web-bridge
 ```
 
 ### Option 3: Local Development
@@ -84,124 +46,54 @@ npm install
 npm start
 ```
 
-Open `http://localhost:3000`
-
----
-
-## Usage
-
-### Connect to Your Neo4j
-
-```
-URL:      bolt://your-neo4j-host:7687
-Username: neo4j
-Password: your-password
-Database: neo4j
-```
-
-**Example URLs:**
-
-| Platform | URL |
-|----------|-----|
-| Railway (internal) | `bolt://neo4j.railway.internal:7687` |
-| Railway (TCP Proxy) | `bolt://maglev.proxy.rlwy.net:36570` |
-| Docker | `bolt://localhost:7687` |
-
-### Run Queries
-
-Use the built-in query editor:
-
-```cypher
-MATCH (n) RETURN n LIMIT 25
-```
-
-Quick queries are available for common operations: Show Nodes, Show Graph, List Labels, Relationship Types.
-
----
-
-## Architecture
-
-```
-┌─────────────┐         HTTPS          ┌──────────────────┐
-│   Browser   │ ──────────────────────→ │  Neo4j Web       │
-│             │                         │  Bridge          │
-│ (Anywhere)  │ ←────────────────────── │  (Node.js)       │
-└─────────────┘         JSON            └──────────────────┘
-                                               │
-                                               │ Bolt Protocol
-                                               │ (private network)
-                                               ↓
-                                        ┌──────────────────┐
-                                        │   Neo4j          │
-                                        │   Database       │
-                                        └──────────────────┘
-```
-
----
-
-## Deployment
-
-### Railway (Recommended)
-
-1. Deploy Neo4j using [neo4j-railway](https://github.com/MacStenk/neo4j-railway)
-2. Deploy Neo4j Web Bridge in the same project
-3. Connect via internal network: `bolt://neo4j.railway.internal:7687`
-4. Access via generated Railway domain
-
-### Render
-
-1. Create new Web Service
-2. Connect repository
-3. Build: `npm install` · Start: `node server.js`
-
-### Fly.io
-
-```bash
-flyctl launch
-flyctl deploy
-```
-
-### Docker
-
-```bash
-docker build -t neo4j-web-bridge .
-docker run -p 3000:3000 neo4j-web-bridge
-```
-
----
-
 ## Configuration
 
 ### Environment Variables
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `PORT` | `3000` | Server port |
-| `NEO4J_URI` | — | Default Neo4j URL |
-| `NEO4J_USER` | — | Default username |
-| `NEO4J_PASSWORD` | — | Default password |
-| `NEO4J_DATABASE` | `neo4j` | Default database |
-| `CORS_ORIGIN` | `*` | Allowed origins |
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `PORT` | No | Server port (default: 3000) |
+| `NEO4J_URI` | No* | Neo4j connection URI (e.g., `bolt://host:7687`) |
+| `NEO4J_USER` | No* | Neo4j username |
+| `NEO4J_PASSWORD` | No* | Neo4j password |
+| `NEO4J_DATABASE` | No | Database name (default: `neo4j`) |
 
-### Security Notes
+*If all three `NEO4J_*` credentials are set, the bridge auto-connects on startup. Otherwise, manual connection via UI or API is required.
 
-- Always deploy with HTTPS in production
-- Never use default passwords
-- Keep Bridge and Neo4j on the same platform/network
-- Restrict Neo4j access to known IPs if possible
-- Consider adding authentication to the web bridge
+### Auto-Connect Mode
 
----
+For API/Gateway usage, set the environment variables and the bridge connects automatically:
+
+```bash
+NEO4J_URI=bolt://yamanote.proxy.rlwy.net:36570
+NEO4J_USER=neo4j
+NEO4J_PASSWORD=your-password
+```
+
+On startup:
+```
+✅ Auto-connected to Neo4j: bolt://yamanote.proxy.rlwy.net:36570
+```
+
+### Manual Connect Mode
+
+Without environment variables, users connect via the Web UI or API:
+
+```bash
+curl -X POST http://localhost:3000/api/connect \
+  -H "Content-Type: application/json" \
+  -d '{"uri":"bolt://host:7687","username":"neo4j","password":"xxx"}'
+```
 
 ## API Reference
 
 ### Health Check
 ```
 GET /api/health
-→ { status: "ok", version: "1.0.0" }
+→ { status: "ok", version: "1.0.0", connected: true, autoConnect: true }
 ```
 
-### Connect
+### Connect (Manual Mode)
 ```
 POST /api/connect
 Body: { uri, username, password, database }
@@ -218,46 +110,38 @@ Body: { cypher, params, database }
 POST /api/disconnect
 ```
 
----
+## Use with MCP Gateway
 
-## Related Projects
+Neo4j Web Bridge works as a backend for [MCP Gateway](https://github.com/MacStenk/mcp-gateway):
 
-| Project | Description |
-|---------|-------------|
-| [neo4j-railway](https://github.com/MacStenk/neo4j-railway) | Production-ready Neo4j deployment for Railway. Deploy your database with one click, then use Neo4j Web Bridge to access it. |
+1. Deploy Neo4j Web Bridge with auto-connect credentials
+2. Add the Bridge URL to MCP Gateway config
+3. Chat with your Neo4j database via Gemini AI
 
----
+```json
+{
+  "name": "neo4j",
+  "type": "neo4j",
+  "url": "https://your-neo4j-bridge.railway.app"
+}
+```
 
-## Contributing
+## Architecture
 
-Contributions are welcome.
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/your-feature`)
-3. Commit your changes (`git commit -m 'Add your feature'`)
-4. Push to the branch (`git push origin feature/your-feature`)
-5. Open a Pull Request
-
----
+```
+┌─────────────┐         HTTPS          ┌──────────────────┐
+│   Browser   │ ──────────────────────→│  Neo4j Web       │
+│  / Gateway  │                        │  Bridge          │
+└─────────────┘                        └──────────────────┘
+                                              │
+                                              │ Bolt Protocol
+                                              ↓
+                                       ┌──────────────────┐
+                                       │   Neo4j          │
+                                       │   Database       │
+                                       └──────────────────┘
+```
 
 ## License
 
-MIT License. See [LICENSE](LICENSE) for details.
-
----
-
-## Roadmap
-
-- [ ] Graph visualization
-- [ ] Query history
-- [ ] Multi-database support
-- [ ] Authentication layer
-- [ ] Query autocomplete
-- [ ] Export results (CSV, JSON)
-
----
-
-## Support
-
-- **Issues:** [GitHub Issues](https://github.com/MacStenk/neo4j-web-bridge/issues)
-- **Discussions:** [GitHub Discussions](https://github.com/MacStenk/neo4j-web-bridge/discussions)
+MIT
