@@ -1,8 +1,8 @@
 # Contributing to Neo4j Web Bridge
 
-First off, thank you for considering contributing to Neo4j Web Bridge! 🎉
+Thank you for considering contributing to Neo4j Web Bridge.
 
-## 🤝 How Can I Contribute?
+## How Can I Contribute?
 
 ### Reporting Bugs
 
@@ -34,7 +34,7 @@ Enhancement suggestions are tracked as GitHub issues. When creating an enhanceme
 * End all files with a newline
 * Avoid platform-dependent code
 
-## 🎨 Style Guide
+## Style Guide
 
 ### JavaScript Style Guide
 
@@ -52,7 +52,7 @@ Enhancement suggestions are tracked as GitHub issues. When creating an enhanceme
 * Limit the first line to 72 characters or less
 * Reference issues and pull requests liberally after the first line
 
-## 🚀 Development Process
+## Development Process
 
 1. Fork the repo
 2. Create a new branch from `main`
@@ -84,10 +84,10 @@ Before submitting a PR, please:
 4. Check the UI on different screen sizes
 5. Test on Chrome, Firefox, and Safari if possible
 
-## 📝 License
+## License
 
 By contributing, you agree that your contributions will be licensed under the MIT License.
 
-## 💬 Questions?
+## Questions?
 
-Feel free to contact the project maintainers if you have any questions!
+Feel free to contact the project maintainers if you have any questions.

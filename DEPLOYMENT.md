@@ -1,4 +1,4 @@
-# 🚀 Deployment Guide
+# Deployment Guide
 
 This guide covers deploying Neo4j Web Bridge on various platforms.
 

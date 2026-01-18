@@ -244,7 +244,7 @@ process.on('SIGTERM', async () => {
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`🚀 Neo4j Web Bridge running on port ${PORT}`);
-  console.log(`📡 API: http://localhost:${PORT}/api`);
-  console.log(`🌐 Web UI: http://localhost:${PORT}`);
+  console.log(`Neo4j Web Bridge running on port ${PORT}`);
+  console.log(`API: http://localhost:${PORT}/api`);
+  console.log(`Web UI: http://localhost:${PORT}`);
 });
