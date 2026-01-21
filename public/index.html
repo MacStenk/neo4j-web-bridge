@@ -538,6 +538,55 @@
             border-color: var(--accent);
         }
 
+        .export-section {
+            margin-top: 24px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .export-section label {
+            display: block;
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+        }
+
+        .export-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .export-btn {
+            padding: 8px 16px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .export-btn:hover {
+            background: var(--accent);
+            color: var(--bg-primary);
+            border-color: var(--accent);
+        }
+
+        .export-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .export-btn svg {
+            width: 16px;
+            height: 16px;
+        }
+
         .results-placeholder {
             height: 100%;
             display: flex;
@@ -896,6 +945,30 @@
                         <textarea id="cypher" placeholder="MATCH (n) RETURN n LIMIT 25"></textarea>
                     </div>
                     <button class="btn btn-primary" onclick="executeQuery()" style="width: 100%;">Execute Query</button>
+
+                    <div class="export-section">
+                        <label>Export Database (requires APOC)</label>
+                        <div class="export-buttons">
+                            <button class="export-btn" onclick="exportCypher()" id="exportCypherBtn">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                                </svg>
+                                Export .cypher
+                            </button>
+                            <button class="export-btn" onclick="exportJson()" id="exportJsonBtn">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                                </svg>
+                                Export .json
+                            </button>
+                            <button class="export-btn" onclick="downloadResults()" id="downloadResultsBtn">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                                </svg>
+                                Download Results
+                            </button>
+                        </div>
+                    </div>
                 </div>
                 <div class="app-results">
                     <div class="results-placeholder" id="resultsPlaceholder">
@@ -1046,6 +1119,106 @@
 
         function setQuery(query) {
             document.getElementById('cypher').value = query;
+        }
+
+        let lastQueryResults = null;
+
+        async function exportCypher() {
+            if (!isConnected) {
+                showMessage('error', 'Please connect to Neo4j first');
+                return;
+            }
+
+            const btn = document.getElementById('exportCypherBtn');
+            btn.disabled = true;
+            btn.textContent = 'Exporting...';
+
+            try {
+                const database = document.getElementById('database').value;
+                const response = await fetch('/api/query', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        cypher: "CALL apoc.export.cypher.all(null, {stream:true, format:'plain'}) YIELD cypherStatements RETURN cypherStatements",
+                        database
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success && data.records.length > 0) {
+                    const cypherContent = data.records.map(r => r.cypherStatements).join('\n');
+                    downloadFile(cypherContent, 'neo4j-export.cypher', 'text/plain');
+                    showMessage('success', 'Cypher export downloaded');
+                } else {
+                    throw new Error(data.error || 'No data returned. Is APOC installed?');
+                }
+            } catch (error) {
+                showMessage('error', 'Export failed: ' + error.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg> Export .cypher`;
+            }
+        }
+
+        async function exportJson() {
+            if (!isConnected) {
+                showMessage('error', 'Please connect to Neo4j first');
+                return;
+            }
+
+            const btn = document.getElementById('exportJsonBtn');
+            btn.disabled = true;
+            btn.textContent = 'Exporting...';
+
+            try {
+                const database = document.getElementById('database').value;
+                const response = await fetch('/api/query', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        cypher: "CALL apoc.export.json.all(null, {stream:true}) YIELD data RETURN data",
+                        database
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success && data.records.length > 0) {
+                    const jsonContent = data.records.map(r => r.data).join('\n');
+                    downloadFile(jsonContent, 'neo4j-export.json', 'application/json');
+                    showMessage('success', 'JSON export downloaded');
+                } else {
+                    throw new Error(data.error || 'No data returned. Is APOC installed?');
+                }
+            } catch (error) {
+                showMessage('error', 'Export failed: ' + error.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg> Export .json`;
+            }
+        }
+
+        function downloadResults() {
+            const resultsContent = document.getElementById('resultsContent').textContent;
+            if (!resultsContent || resultsContent === '') {
+                showMessage('error', 'No query results to download. Execute a query first.');
+                return;
+            }
+            downloadFile(resultsContent, 'query-results.json', 'application/json');
+            showMessage('success', 'Results downloaded');
+        }
+
+        function downloadFile(content, filename, mimeType) {
+            const blob = new Blob([content], { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
         }
 
         document.getElementById('password').addEventListener('keypress', (e) => {
