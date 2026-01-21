@@ -18,9 +18,10 @@ const PORT = process.env.PORT || 3000;
 // =============================================================================
 
 const API_KEY = process.env.API_KEY;
-const CORS_ORIGINS = process.env.CORS_ORIGINS 
+// Default to '*' for web interface accessibility - restrict via env var if needed
+const CORS_ORIGINS = process.env.CORS_ORIGINS
   ? process.env.CORS_ORIGINS.split(',').map(o => o.trim())
-  : ['http://localhost:3000', 'http://localhost:3001'];
+  : ['*'];
 
 // Rate limiting configuration
 const RATE_LIMIT_WINDOW_MS = parseInt(process.env.RATE_LIMIT_WINDOW_MS || '60000');
@@ -431,6 +432,17 @@ function convertNeo4jValue(value) {
 
   return value;
 }
+
+// =============================================================================
+// ERROR HANDLER - Return JSON instead of HTML for API errors
+// =============================================================================
+
+app.use((err, req, res, next) => {
+  console.error('Error:', err.message);
+  res.status(500).json({
+    error: err.message || 'Internal server error'
+  });
+});
 
 // =============================================================================
 // GRACEFUL SHUTDOWN
