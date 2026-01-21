@@ -205,6 +205,22 @@ async function autoConnect() {
 // API ENDPOINTS
 // =============================================================================
 
+// Root endpoint - API info
+app.get('/', (req, res) => {
+  res.json({
+    name: 'Neo4j Web Bridge',
+    version: '1.1.0',
+    status: 'running',
+    endpoints: {
+      health: '/api/health',
+      connect: 'POST /api/connect',
+      query: 'POST /api/query',
+      info: '/api/info',
+      disconnect: 'POST /api/disconnect'
+    }
+  });
+});
+
 // Health check - public (no auth required)
 app.get('/api/health', (req, res) => {
   res.json({ 
